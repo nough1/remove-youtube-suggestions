@@ -1,31 +1,31 @@
-
 // Some global constants.
 const HTML = document.documentElement;
 
 // Redirect setting constants.
 const REDIRECT_URLS = {
-  "redirect_off":        false,
-  "redirect_to_subs":    'https://www.youtube.com/feed/subscriptions',
-  "redirect_to_wl":      'https://www.youtube.com/playlist/?list=WL',
-  "redirect_to_library": 'https://www.youtube.com/feed/library',
+  redirect_off: false,
+  redirect_to_subs: "https://www.youtube.com/feed/subscriptions",
+  redirect_to_wl: "https://www.youtube.com/playlist/?list=WL",
+  redirect_to_library: "https://www.youtube.com/feed/library",
 };
 
-const resultsPageRegex = new RegExp('.*://.*youtube\.com/results.*', 'i');
-const homepageRegex =    new RegExp('.*://(www|m)\.youtube\.com(/)?$',  'i');
-const shortsRegex =      new RegExp('.*://.*youtube\.com/shorts.*',  'i');
-const videoRegex =       new RegExp('.*://.*youtube\.com/watch\\?v=.*',  'i');
-const subsRegex =        new RegExp(/\/feed\/subscriptions$/, 'i');
+const resultsPageRegex = new RegExp(".*://.*youtube.com/results.*", "i");
+const homepageRegex = new RegExp(".*://(www|m).youtube.com(/)?$", "i");
+const shortsRegex = new RegExp(".*://.*youtube.com/shorts.*", "i");
+const videoRegex = new RegExp(".*://.*youtube.com/watch\\?v=.*", "i");
+const subsRegex = new RegExp(/\/feed\/subscriptions$/, "i");
 
 // Dynamic settings variables
 const cache = {};
 let url = location.href;
-let theaterClicked = false, hyper = false;
+let theaterClicked = false,
+  hyper = false;
 let onResultsPage = resultsPageRegex.test(url);
 let onHomepage = homepageRegex.test(url);
 let onShorts = shortsRegex.test(url);
 let onVideo = videoRegex.test(url);
 let onSubs = subsRegex.test(url);
-let settingsInit = false
+let settingsInit = false;
 
 let dynamicIters = 0;
 let frameRequested = false;
@@ -37,10 +37,9 @@ const scheduleInterval = 2_000; // 2 seconds
 let lastRedirect;
 const redirectInterval = 1_000; // 1 second
 
-
 // Respond to changes in settings
 function logStorageChange(changes, area) {
-  if (area !== 'local') return;
+  if (area !== "local") return;
 
   Object.entries(changes).forEach(([id, { oldValue, newValue }]) => {
     if (oldValue === newValue) return;
@@ -48,25 +47,26 @@ function logStorageChange(changes, area) {
     HTML.setAttribute(id, newValue);
     cache[id] = newValue;
 
-    if (id.includes('schedule')) {
+    if (id.includes("schedule")) {
       lastScheduleCheck = null;
     }
   });
 }
 browser.storage.onChanged.addListener(logStorageChange);
 
-
 // Get settings
-browser.storage.local.get(settings => {
+browser.storage.local.get((settings) => {
   if (!settings) return;
 
-  Object.entries({ ...DEFAULT_SETTINGS, ...settings}).forEach(([ id, value ]) => {
-    HTML.setAttribute(id, value);
-    cache[id] = value;
-  });
+  Object.entries({ ...DEFAULT_SETTINGS, ...settings }).forEach(
+    ([id, value]) => {
+      HTML.setAttribute(id, value);
+      cache[id] = value;
+    }
+  );
 
   const init = {};
-  Object.entries(DEFAULT_SETTINGS).forEach(([ id, value]) => {
+  Object.entries(DEFAULT_SETTINGS).forEach(([id, value]) => {
     if (!(id in settings)) init[id] = value;
   });
   browser.storage.local.set(init);
@@ -74,9 +74,7 @@ browser.storage.local.get(settings => {
   runDynamicSettings();
 });
 
-
-document.addEventListener("DOMContentLoaded", e => handleNewPage());
-
+document.addEventListener("DOMContentLoaded", (e) => handleNewPage());
 
 // Dynamic settings (i.e. js instead of css)
 function runDynamicSettings() {
@@ -85,30 +83,34 @@ function runDynamicSettings() {
   // lastRun = Date.now();
   isRunning = true;
   dynamicIters += 1;
-  const on = cache['global_enable'] === true;
+  const on = cache["global_enable"] === true;
 
   // Scheduling, timedChanges
   timeBlock: try {
-
     // Timed changes
     const { nextTimedChange, nextTimedValue } = cache;
     if (nextTimedChange) {
       if (Date.now() > Number(nextTimedChange)) {
-        updateSetting('nextTimedChange', false);
-        updateSetting('global_enable', nextTimedValue);
+        updateSetting("nextTimedChange", false);
+        updateSetting("global_enable", nextTimedValue);
       }
       break timeBlock;
     }
 
     // Scheduling
-    const scheduleEnabled = cache['schedule'];
-    const scheduleCheckTimeElapsed = Date.now() - lastScheduleCheck > scheduleInterval;
+    const scheduleEnabled = cache["schedule"];
+    const scheduleCheckTimeElapsed =
+      Date.now() - lastScheduleCheck > scheduleInterval;
     if (scheduleEnabled && (!lastScheduleCheck || scheduleCheckTimeElapsed)) {
       lastScheduleCheck = Date.now();
-      const scheduleIsActive = checkSchedule(cache['scheduleTimes'], cache['scheduleDays']);
-      const scheduleChange = (scheduleIsActive && !on) || (!scheduleIsActive && on);
+      const scheduleIsActive = checkSchedule(
+        cache["scheduleTimes"],
+        cache["scheduleDays"]
+      );
+      const scheduleChange =
+        (scheduleIsActive && !on) || (!scheduleIsActive && on);
       if (scheduleChange) {
-        updateSetting('global_enable', !on);
+        updateSetting("global_enable", !on);
       }
     }
   } catch (error) {
@@ -128,51 +130,53 @@ function runDynamicSettings() {
   }
 
   // Double check for redirects.
-  if (onHomepage && !cache['redirect_off']) {
+  if (onHomepage && !cache["redirect_off"]) {
     handleNewPage();
   }
 
   // Dynamic settings
   try {
-
     // Pause autoplaying channel trailers
-    if (cache['disable_channel_autoplay'] && dynamicIters <= 10) {
-      qs('ytd-channel-video-player-renderer video')?.pause();
+    if (cache["disable_channel_autoplay"] && dynamicIters <= 10) {
+      qs("ytd-channel-video-player-renderer video")?.pause();
     }
 
     // Hide all shorts
-    if (cache['remove_all_shorts']) {
-      const shortsBadgeSelector = 'ytd-thumbnail-overlay-time-status-renderer[overlay-style="SHORTS"]';
+    if (cache["remove_all_shorts"]) {
+      const shortsBadgeSelector =
+        'ytd-thumbnail-overlay-time-status-renderer[overlay-style="SHORTS"]';
       const shortBadges = qsa(shortsBadgeSelector);
-      shortBadges?.forEach(badge => {
-        const sidebarVid = badge.closest('ytd-compact-video-renderer');
-        sidebarVid?.setAttribute('is_short', '');
-        const gridVideo = badge.closest('ytd-grid-video-renderer');
-        gridVideo?.setAttribute('is_short', '');
-        const updatedGridVideo = badge.closest('ytd-rich-item-renderer');
-        updatedGridVideo?.setAttribute('is_short', '');
+      shortBadges?.forEach((badge) => {
+        const sidebarVid = badge.closest("ytd-compact-video-renderer");
+        sidebarVid?.setAttribute("is_short", "");
+        const gridVideo = badge.closest("ytd-grid-video-renderer");
+        gridVideo?.setAttribute("is_short", "");
+        const updatedGridVideo = badge.closest("ytd-rich-item-renderer");
+        updatedGridVideo?.setAttribute("is_short", "");
       });
 
-      const shortsShelfSelector = '*[is-shorts]';
+      const shortsShelfSelector = "*[is-shorts]";
       const shortsShelves = qsa(shortsShelfSelector);
-      shortsShelves?.forEach(shelf => {
-        const shelfContainer = shelf.closest('ytd-rich-section-renderer');
-        shelfContainer?.setAttribute('is_short', '');
+      shortsShelves?.forEach((shelf) => {
+        const shelfContainer = shelf.closest("ytd-rich-section-renderer");
+        shelfContainer?.setAttribute("is_short", "");
       });
     }
 
     // Subscriptions page options
     if (onSubs) {
-      const badgeSelector = 'ytd-badge-supported-renderer';
-      const upcomingBadgeSelector = 'ytd-thumbnail-overlay-time-status-renderer[overlay-style="UPCOMING"]';
-      const shortsBadgeSelector = 'ytd-thumbnail-overlay-time-status-renderer[overlay-style="SHORTS"]';
-      const addBadgeTextToVideo = badge => {
+      const badgeSelector = "ytd-badge-supported-renderer";
+      const upcomingBadgeSelector =
+        'ytd-thumbnail-overlay-time-status-renderer[overlay-style="UPCOMING"]';
+      const shortsBadgeSelector =
+        'ytd-thumbnail-overlay-time-status-renderer[overlay-style="SHORTS"]';
+      const addBadgeTextToVideo = (badge) => {
         const badgeText = badge.innerText.trim().toLowerCase();
         if (badgeText) {
-          const gridVideo = badge.closest('ytd-grid-video-renderer');
-          const updatedGridVideo = badge.closest('ytd-rich-item-renderer');
-          gridVideo?.setAttribute('badge-text', badgeText);
-          updatedGridVideo?.setAttribute('badge-text', badgeText);
+          const gridVideo = badge.closest("ytd-grid-video-renderer");
+          const updatedGridVideo = badge.closest("ytd-rich-item-renderer");
+          gridVideo?.setAttribute("badge-text", badgeText);
+          updatedGridVideo?.setAttribute("badge-text", badgeText);
         }
       };
 
@@ -186,70 +190,81 @@ function runDynamicSettings() {
 
       // Shorts
       const shortBadges = qsa(shortsBadgeSelector);
-      shortBadges.forEach(badge => {
-        const video = badge.closest('ytd-grid-video-renderer');
-        const updatedGridVideo = badge.closest('ytd-rich-item-renderer');
-        video?.setAttribute('is_sub_short', '');
-        updatedGridVideo?.setAttribute('is_sub_short', '');
+      shortBadges.forEach((badge) => {
+        const video = badge.closest("ytd-grid-video-renderer");
+        const updatedGridVideo = badge.closest("ytd-rich-item-renderer");
+        video?.setAttribute("is_sub_short", "");
+        updatedGridVideo?.setAttribute("is_sub_short", "");
       });
 
       // VODs
-      const vodSelector = '#metadata-line span';
-      const vodSpans = qsa(vodSelector).filter(span => span.innerText.includes('Streamed'));
-      vodSpans.forEach(span => {
-        const video = span.closest('ytd-grid-video-renderer');
-        const updatedGridVideo = span.closest('ytd-rich-item-renderer');
-        video?.setAttribute('is_vod', '');
-        updatedGridVideo?.setAttribute('is_vod', '');
+      const vodSelector = "#metadata-line span";
+      const vodSpans = qsa(vodSelector).filter((span) =>
+        span.innerText.includes("Streamed")
+      );
+      vodSpans.forEach((span) => {
+        const video = span.closest("ytd-grid-video-renderer");
+        const updatedGridVideo = span.closest("ytd-rich-item-renderer");
+        video?.setAttribute("is_vod", "");
+        updatedGridVideo?.setAttribute("is_vod", "");
       });
 
       // Reduce empty space.
-      const subsRows = qsa('ytd-rich-grid-row');
-      subsRows.forEach(row => {
-        const contents = qs('#contents', row);
+      const subsRows = qsa("ytd-rich-grid-row");
+      subsRows.forEach((row) => {
+        const contents = qs("#contents", row);
         if (!contents) return;
-        const items = qsa('ytd-rich-item-renderer', contents);
+        const items = qsa("ytd-rich-item-renderer", contents);
         if (!items) return;
-        const activeItems = items.filter(item => item.offsetParent);
-        activeItems.forEach(item => item.style.setProperty('--ytd-rich-grid-items-per-row', activeItems.length));
-        row.setAttribute('empty', activeItems.length === 0);
+        const activeItems = items.filter((item) => item.offsetParent);
+        activeItems.forEach((item) =>
+          item.style.setProperty(
+            "--ytd-rich-grid-items-per-row",
+            activeItems.length
+          )
+        );
+        row.setAttribute("empty", activeItems.length === 0);
       });
     }
 
     // Hide shorts on the results page
     if (onResultsPage) {
       const shortResults = qsa('a[href^="/shorts/"]:not([marked_as_short])');
-      shortResults.forEach(sr => {
-        sr.setAttribute('marked_as_short', true);
-        const result = sr.closest('ytd-video-renderer');
-        result?.setAttribute('is_short', true);
+      shortResults.forEach((sr) => {
+        sr.setAttribute("marked_as_short", true);
+        const result = sr.closest("ytd-video-renderer");
+        result?.setAttribute("is_short", true);
 
         // Mobile
-        const mobileResult = sr.closest('ytm-video-with-context-renderer');
-        mobileResult?.setAttribute('is_short', true);
+        const mobileResult = sr.closest("ytm-video-with-context-renderer");
+        mobileResult?.setAttribute("is_short", true);
       });
     }
 
     // Click on "dismiss" buttons
-    const dismissButtons = qsa('#dismiss-button');
-    dismissButtons.forEach(dismissButton => {
+    const dismissButtons = qsa("#dismiss-button");
+    dismissButtons.forEach((dismissButton) => {
       if (dismissButton && dismissButton.offsetParent) {
         dismissButton.click();
       }
-    })
+    });
 
     // Disable autoplay
-    if (cache['disable_autoplay'] === true) {
-      const autoplayButton = qsa('.ytp-autonav-toggle-button[aria-checked=true]');
-      autoplayButton?.forEach(e => {
+    if (cache["disable_autoplay"] === true) {
+      const autoplayButton = qsa(
+        ".ytp-autonav-toggle-button[aria-checked=true]"
+      );
+      autoplayButton?.forEach((e) => {
         if (e && e.offsetParent) {
           e.click();
         }
       });
 
       // mobile
-      const mAutoplayButton = qsa('.ytm-autonav-toggle-button-container[aria-pressed=true]');
-      mAutoplayButton?.forEach(e => {
+      const mAutoplayButton = qsa(
+        ".ytm-autonav-toggle-button-container[aria-pressed=true]"
+      );
+      mAutoplayButton?.forEach((e) => {
         if (e && e.offsetParent) {
           e.click();
         }
@@ -258,16 +273,16 @@ function runDynamicSettings() {
 
     // Disable ambient mode and annotations
     if (onVideo) {
-
       // Check if the video player is visible
-      const video = qs('ytd-player');
+      const video = qs("ytd-player");
       if (video && video.offsetParent && !settingsInit) {
-
         // Initialize the settings menu -- creates toggles for ambient mode and annotations.
-        const checkMenuItems = qsa('.ytp-settings-menu .ytp-panel .ytp-panel-menu > div');
+        const checkMenuItems = qsa(
+          ".ytp-settings-menu .ytp-panel .ytp-panel-menu > div"
+        );
         if (checkMenuItems?.length === 0) {
-          const settingsButton = qsa('#ytd-player button.ytp-settings-button');
-          settingsButton.forEach(b => {
+          const settingsButton = qsa("#ytd-player button.ytp-settings-button");
+          settingsButton.forEach((b) => {
             if (b && b.offsetParent) {
               b.click();
               b.click();
@@ -277,21 +292,25 @@ function runDynamicSettings() {
         }
       }
 
-      const menuItems = qsa('.ytp-settings-menu .ytp-panel .ytp-panel-menu > div');
-      const checkBoxes = menuItems.filter(n => n.getAttribute('aria-checked'));
-      const [ ambientToggle, annotationsToggle ] = checkBoxes;
+      const menuItems = qsa(
+        ".ytp-settings-menu .ytp-panel .ytp-panel-menu > div"
+      );
+      const checkBoxes = menuItems.filter((n) =>
+        n.getAttribute("aria-checked")
+      );
+      const [ambientToggle, annotationsToggle] = checkBoxes;
 
       // Disable ambient mode
-      if (cache['disable_ambient_mode'] === true) {
-        if (ambientToggle?.getAttribute('aria-checked') === 'true') {
-          qs('.ytp-menuitem-toggle-checkbox', ambientToggle)?.click();
+      if (cache["disable_ambient_mode"] === true) {
+        if (ambientToggle?.getAttribute("aria-checked") === "true") {
+          qs(".ytp-menuitem-toggle-checkbox", ambientToggle)?.click();
         }
       }
 
       // Disable annotations
-      if (cache['disable_annotations'] === true) {
-        if (annotationsToggle?.getAttribute('aria-checked') === 'true') {
-          qs('.ytp-menuitem-toggle-checkbox', annotationsToggle)?.click();
+      if (cache["disable_annotations"] === true) {
+        if (annotationsToggle?.getAttribute("aria-checked") === "true") {
+          qs(".ytp-menuitem-toggle-checkbox", annotationsToggle)?.click();
         }
       }
     }
@@ -307,30 +326,29 @@ function runDynamicSettings() {
     // }
 
     // Skip through ads
-    if (cache['auto_skip_ads'] === true) {
-
+    if (cache["auto_skip_ads"] === true) {
       // Close overlay ads.
-      qsa('.ytp-ad-overlay-close-button')?.forEach(e => {
+      qsa(".ytp-ad-overlay-close-button")?.forEach((e) => {
         if (e && e.offsetParent) {
           e.click();
         }
       });
 
       // Click on "Skip ad" button
-      const skipButtons = qsa('.ytp-ad-skip-button');
-      const skippableAd = skipButtons.some(button => button.offsetParent);
+      const skipButtons = qsa(".ytp-ad-skip-button");
+      const skippableAd = skipButtons.some((button) => button.offsetParent);
       if (skippableAd) {
-        qsa('.ytp-ad-skip-button')?.forEach(e => {
+        qsa(".ytp-ad-skip-button")?.forEach((e) => {
           if (e && e.offsetParent) {
             e.click();
           }
         });
       } else {
-
         // Speed through ads that can't be skipped (yet).
-        let adSelector = '.ytp-ad-player-overlay-instream-info';
+        let adSelector = ".ytp-ad-player-overlay-instream-info";
         let adElement = qsa(adSelector)[0];
-        const adActive = adElement && window.getComputedStyle(adElement).display !== 'none';
+        const adActive =
+          adElement && window.getComputedStyle(adElement).display !== "none";
         const video = document.getElementsByTagName("video")[0];
         if (adActive) {
           if (!hyper) {
@@ -343,8 +361,9 @@ function runDynamicSettings() {
             let playbackRate = 1;
             let muted = false;
             try {
-              const playbackRateObject = window.sessionStorage['yt-player-playback-rate'];
-              const volumeObject = window.sessionStorage['yt-player-volume'];
+              const playbackRateObject =
+                window.sessionStorage["yt-player-playback-rate"];
+              const volumeObject = window.sessionStorage["yt-player-volume"];
               playbackRate = Number(JSON.parse(playbackRateObject).data);
               muted = JSON.parse(JSON.parse(volumeObject).data).muted;
             } catch (error) {
@@ -363,11 +382,13 @@ function runDynamicSettings() {
     // }
 
     // Hide all but the timestamped comments
-    if (cache['remove_non_timestamp_comments']) {
-      const timestamps = qsa('yt-formatted-string:not(.published-time-text).ytd-comment-renderer > a.yt-simple-endpoint[href^="/watch"]');
-      timestamps.forEach(timestamp => {
-        const comment = timestamp.closest('ytd-comment-thread-renderer');
-        comment?.setAttribute('timestamp_comment', '');
+    if (cache["remove_non_timestamp_comments"]) {
+      const timestamps = qsa(
+        'yt-formatted-string:not(.published-time-text).ytd-comment-renderer > a.yt-simple-endpoint[href^="/watch"]'
+      );
+      timestamps.forEach((timestamp) => {
+        const comment = timestamp.closest("ytd-comment-thread-renderer");
+        comment?.setAttribute("timestamp_comment", "");
       });
     }
 
@@ -396,9 +417,9 @@ function runDynamicSettings() {
     // }
 
     // Show description
-    if (cache['expand_description'] || cache['remove_comments']) {
-      const expandButton = qsa('#description #expand.button');
-      expandButton.forEach(b => {
+    if (cache["expand_description"] || cache["remove_comments"]) {
+      const expandButton = qsa("#description #expand.button");
+      expandButton.forEach((b) => {
         if (b && b.offsetParent) {
           b.click();
         }
@@ -406,92 +427,104 @@ function runDynamicSettings() {
     }
 
     // Hide playlist suggestions
-    if (cache['remove_playlist_suggestions']) {
-      const identifier = qs('ytd-item-section-header-renderer[title-style="ITEM_SECTION_HEADER_TITLE_STYLE_PLAYLIST_RECOMMENDATIONS"]');
+    if (cache["remove_playlist_suggestions"]) {
+      const identifier = qs(
+        'ytd-item-section-header-renderer[title-style="ITEM_SECTION_HEADER_TITLE_STYLE_PLAYLIST_RECOMMENDATIONS"]'
+      );
       if (identifier) {
-        const section = identifier.closest('ytd-item-section-renderer');
-        section?.setAttribute('is-playlist-suggestions', '');
+        const section = identifier.closest("ytd-item-section-renderer");
+        section?.setAttribute("is-playlist-suggestions", "");
       }
     }
 
     // Show video length when thumbnails are hidden
-    if (cache['search_engine_mode'] || cache['remove_video_thumbnails']) {
-      const thumbnails = qsa('ytd-thumbnail');
-      thumbnails.forEach(thumbnail => {
-        const videoRow = thumbnail.closest('ytd-video-renderer');
+    if (cache["search_engine_mode"] || cache["remove_video_thumbnails"]) {
+      const thumbnails = qsa("ytd-thumbnail");
+      thumbnails.forEach((thumbnail) => {
+        const videoRow = thumbnail.closest("ytd-video-renderer");
         if (!videoRow) return;
-        const exists = qs('.inline-metadata-item[metadata-time]', videoRow);
+        const exists = qs(".inline-metadata-item[metadata-time]", videoRow);
         if (exists) return;
 
-        const timeNode = qs('ytd-thumbnail-overlay-time-status-renderer #text', thumbnail);
+        const timeNode = qs(
+          "ytd-thumbnail-overlay-time-status-renderer #text",
+          thumbnail
+        );
         const time = timeNode?.innerText?.trim();
         if (!time) return;
 
-        const metadata = qs('#metadata-line', videoRow);
+        const metadata = qs("#metadata-line", videoRow);
         if (!metadata) return;
-        const lastMetadataLine = qs('.inline-metadata-item:last-of-type', metadata);
+        const lastMetadataLine = qs(
+          ".inline-metadata-item:last-of-type",
+          metadata
+        );
         if (!lastMetadataLine) return;
 
         // length metadata goes between views and age.
         const metadataLine = lastMetadataLine.cloneNode(true);
-        metadataLine.setAttribute('metadata-time', '');
+        metadataLine.setAttribute("metadata-time", "");
         metadataLine.innerText = time;
         metadata.insertBefore(metadataLine, lastMetadataLine);
       });
     }
 
     // Hide all but the related tag in the sidebar
-    if (onVideo && cache['remove_extra_sidebar_tags']) {
-      const getChip = name => {
-        const text = qs(`yt-chip-cloud-chip-renderer yt-formatted-string[title="${name}"]`);
-        const chip = text?.closest('yt-chip-cloud-chip-renderer');
+    if (onVideo && cache["remove_extra_sidebar_tags"]) {
+      const getChip = (name) => {
+        const text = qs(
+          `yt-chip-cloud-chip-renderer yt-formatted-string[title="${name}"]`
+        );
+        const chip = text?.closest("yt-chip-cloud-chip-renderer");
         return chip;
-      }
-      const allChip = getChip('All');
-      const relatedChip = getChip('Related');
+      };
+      const allChip = getChip("All");
+      const relatedChip = getChip("Related");
 
-      const chips = qsa('yt-chip-cloud-chip-renderer');
-      chips.forEach(chip => {
-        const hideChip = (chip !== relatedChip) && (chip !== allChip);
-        chip.toggleAttribute('hide-chip', hideChip);
+      const chips = qsa("yt-chip-cloud-chip-renderer");
+      chips.forEach((chip) => {
+        const hideChip = chip !== relatedChip && chip !== allChip;
+        chip.toggleAttribute("hide-chip", hideChip);
       });
     }
 
     // Reveal suggestions button
     const revealButtons = [
       {
-        containerSelector: 'ytd-page-manager', buttonId: 'rys_homepage_reveal_button',
-        innerText: 'Show homepage suggestions',
-        clickListener: e => HTML.setAttribute('remove_homepage', false),
+        containerSelector: "ytd-page-manager",
+        buttonId: "rys_homepage_reveal_button",
+        innerText: "Show homepage suggestions",
+        clickListener: (e) => HTML.setAttribute("remove_homepage", false),
       },
       {
-        containerSelector: '#secondary-inner', buttonId: 'rys_sidebar_reveal_button',
-        innerText: 'Show sidebar suggestions',
-        clickListener: e => HTML.setAttribute('remove_sidebar', false),
+        containerSelector: "#secondary-inner",
+        buttonId: "rys_sidebar_reveal_button",
+        innerText: "",
+        clickListener: (e) => HTML.setAttribute("remove_sidebar", false),
       },
       {
-        containerSelector: '#movie_player', buttonId: 'rys_end_of_video_reveal_button',
-        innerText: 'Show end-of-video suggestions',
-        clickListener: e => HTML.setAttribute('remove_end_of_video', false),
+        containerSelector: "#movie_player",
+        buttonId: "rys_end_of_video_reveal_button",
+        innerText: "Show end-of-video suggestions",
+        clickListener: (e) => HTML.setAttribute("remove_end_of_video", false),
       },
     ];
-    revealButtons.forEach(obj => {
+    revealButtons.forEach((obj) => {
       const { containerSelector, buttonId, innerText, clickListener } = obj;
       const existingButton = qs(`#${buttonId}`);
       if (!existingButton) {
-        const buttonContainer = document.createElement('div');
-        const newButton = document.createElement('button');
+        const buttonContainer = document.createElement("div");
+        const newButton = document.createElement("button");
         const container = qs(containerSelector);
-        buttonContainer.classList.add('rys_reveal_button_container');
-        newButton.setAttribute('id', buttonId);
-        newButton.classList.add('rys_reveal_button');
+        buttonContainer.classList.add("rys_reveal_button_container");
+        newButton.setAttribute("id", buttonId);
+        newButton.classList.add("rys_reveal_button");
         newButton.innerText = innerText;
-        newButton.addEventListener('click', clickListener);
+        newButton.addEventListener("click", clickListener);
         buttonContainer.appendChild(newButton);
         container?.appendChild(buttonContainer);
       }
     });
-
   } catch (error) {
     console.log(error);
   }
@@ -501,7 +534,6 @@ function runDynamicSettings() {
   requestRunDynamicSettings();
 }
 
-
 function requestRunDynamicSettings() {
   if (frameRequested || isRunning) return;
   frameRequested = true;
@@ -509,18 +541,19 @@ function requestRunDynamicSettings() {
   setTimeout(() => runDynamicSettings(), Math.min(100, 50 + 10 * dynamicIters));
 }
 
-
 function injectScripts() {
-  const on = cache['global_enable'] === true;
+  const on = cache["global_enable"] === true;
   if (!on) return;
 
   // Disable playlist autoplay
-  if (cache['disable_playlist_autoplay']) {
-    const existingScript = document.querySelector('script[id="disable_playlist_autoplay"]')
+  if (cache["disable_playlist_autoplay"]) {
+    const existingScript = document.querySelector(
+      'script[id="disable_playlist_autoplay"]'
+    );
     if (existingScript) return;
 
     const script = document.createElement("script");
-    script.id = 'disable_playlist_autoplay';
+    script.id = "disable_playlist_autoplay";
     script.type = "text/javascript";
     script.innerText = `
 (function() {
@@ -535,12 +568,10 @@ setInterval(f, 100);
 `;
     document.body?.appendChild(script);
   }
-
 }
 
-
 function handleNewPage() {
-  const on = cache['global_enable'] === true;
+  const on = cache["global_enable"] === true;
 
   dynamicIters = 0;
   url = location.href;
@@ -554,34 +585,36 @@ function handleNewPage() {
   settingsInit = false;
 
   // Mark whether or not we're on the search results page
-  HTML.setAttribute('on_results_page', onResultsPage);
+  HTML.setAttribute("on_results_page", onResultsPage);
 
   // Mark whether or not we're on the homepage
-  HTML.setAttribute('on_homepage', onHomepage);
+  HTML.setAttribute("on_homepage", onHomepage);
 
   // Mark whether or not we're on a video page
-  HTML.setAttribute('on_video', onVideo);
+  HTML.setAttribute("on_video", onVideo);
 
   // Refresh HTML attributes
-  Object.entries(cache).forEach(([key, value]) => HTML.setAttribute(key, value));
+  Object.entries(cache).forEach(([key, value]) =>
+    HTML.setAttribute(key, value)
+  );
 
   // Homepage redirects
   if (
     on &&
     onHomepage &&
-    !cache['redirect_off'] &&
+    !cache["redirect_off"] &&
     (!lastRedirect || Date.now() - lastRedirect > redirectInterval)
   ) {
-    if (cache['redirect_to_subs']) {
+    if (cache["redirect_to_subs"]) {
       const button = qs('a#endpoint[href="/feed/subscriptions"]');
       button?.click();
       lastRedirect = Date.now();
     }
-    if (cache['redirect_to_wl']) {
-      location.replace(REDIRECT_URLS['redirect_to_wl']);
+    if (cache["redirect_to_wl"]) {
+      location.replace(REDIRECT_URLS["redirect_to_wl"]);
       lastRedirect = Date.now();
     }
-    if (cache['redirect_to_library']) {
+    if (cache["redirect_to_library"]) {
       const button = qs('a#endpoint[href="/feed/library"]');
       button?.click();
       lastRedirect = Date.now();
@@ -589,14 +622,18 @@ function handleNewPage() {
   }
 
   // Redirect the shorts player
-  if (on && onShorts && cache['normalize_shorts']) {
-    const newUrl = url.replace('shorts', 'watch');
+  if (on && onShorts && cache["normalize_shorts"]) {
+    const newUrl = url.replace("shorts", "watch");
     location.replace(newUrl);
   }
 
   // Autofocus the search bar
-  if (on && !onVideo && (cache['autofocus_search'] || cache['search_engine_mode'])) {
-    const searchBar = qs('input#search');
+  if (
+    on &&
+    !onVideo &&
+    (cache["autofocus_search"] || cache["search_engine_mode"])
+  ) {
+    const searchBar = qs("input#search");
     if (!searchBar.value) {
       searchBar?.focus();
     }
@@ -606,20 +643,21 @@ function handleNewPage() {
   requestRunDynamicSettings();
 }
 
-function setCookie(cname, cvalue, exdays=370) {
+function setCookie(cname, cvalue, exdays = 370) {
   const d = new Date();
-  d.setTime(d.getTime() + (exdays*24*60*60*1000));
-  let expires = "expires="+ d.toUTCString();
-  document.cookie = cname + "=" + cvalue + ";" + expires + ";domain=.youtube.com;path=/";
+  d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+  let expires = "expires=" + d.toUTCString();
+  document.cookie =
+    cname + "=" + cvalue + ";" + expires + ";domain=.youtube.com;path=/";
 }
 
 function getCookie(cname) {
   let name = cname + "=";
   let decodedCookie = decodeURIComponent(document.cookie);
-  let ca = decodedCookie.split(';');
+  let ca = decodedCookie.split(";");
   for (let i = 0; i < ca.length; i++) {
     let c = ca[i];
-    while (c.charAt(0) == ' ') {
+    while (c.charAt(0) == " ") {
       c = c.substring(1);
     }
     if (c.indexOf(name) == 0) {
