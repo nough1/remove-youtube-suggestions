@@ -491,12 +491,6 @@ function runDynamicSettings() {
     // Reveal suggestions button
     const revealButtons = [
       {
-        containerSelector: "ytd-page-manager",
-        buttonId: "rys_homepage_reveal_button",
-        innerText: "Show homepage suggestions",
-        clickListener: (e) => HTML.setAttribute("remove_homepage", false),
-      },
-      {
         containerSelector: "#secondary-inner",
         buttonId: "rys_sidebar_reveal_button",
         innerText: "",
@@ -513,16 +507,16 @@ function runDynamicSettings() {
       const { containerSelector, buttonId, innerText, clickListener } = obj;
       const existingButton = qs(`#${buttonId}`);
       if (!existingButton) {
-        const buttonContainer = document.createElement("div");
-        const newButton = document.createElement("button");
-        const container = qs(containerSelector);
-        buttonContainer.classList.add("rys_reveal_button_container");
-        newButton.setAttribute("id", buttonId);
-        newButton.classList.add("rys_reveal_button");
-        newButton.innerText = innerText;
-        newButton.addEventListener("click", clickListener);
-        buttonContainer.appendChild(newButton);
-        container?.appendChild(buttonContainer);
+        //const buttonContainer = document.createElement("div");
+        //const newButton = document.createElement("button");
+        //const container = qs(containerSelector);
+        //buttonContainer.classList.add("rys_reveal_button_container");
+        //newButton.setAttribute("id", buttonId);
+        //newButton.classList.add("rys_reveal_button");
+        //newButton.innerText = innerText;
+        //newButton.addEventListener("click", clickListener);
+        //buttonContainer.appendChild(newButton);
+        //container?.appendChild(buttonContainer);
       }
     });
   } catch (error) {
